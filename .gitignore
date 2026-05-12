@@ -1,0 +1,12 @@
+posters/
+checkpoints/
+*.pt
+*.pth
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.scrapy/
+*.log

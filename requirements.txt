@@ -1,0 +1,13 @@
+--extra-index-url https://download.pytorch.org/whl/cu124
+scrapy
+torch
+torchvision
+albumentations
+scikit-learn
+scikit-multilearn
+iterative-stratification
+pandas
+tqdm
+Pillow
+numpy
+matplotlib
