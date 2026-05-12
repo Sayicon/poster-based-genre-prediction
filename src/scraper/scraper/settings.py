@@ -24,6 +24,9 @@ ITEM_PIPELINES = {
 
 IMAGES_STORE = str(Path(__file__).resolve().parents[3] / "posters")
 
+# Scrapy'nin kendi kuyruk checkpoint'i — spider durduğu yerden devam eder
+JOBDIR = str(Path(__file__).resolve().parents[3] / ".scrapy_job")
+
 FEED_EXPORT_ENCODING = "utf-8"
 
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"

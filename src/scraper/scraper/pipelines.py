@@ -59,9 +59,11 @@ class CsvExportPipeline:
             output_path = Path(labels_path)
         else:
             output_path = Path(self.settings.get("IMAGES_STORE")).parent / "labels.csv"
-        self.file = open(output_path, "w", newline="", encoding="utf-8")
+        file_exists = output_path.exists() and output_path.stat().st_size > 0
+        self.file = open(output_path, "a", newline="", encoding="utf-8")
         self.writer = csv.writer(self.file)
-        self.writer.writerow(["tmdb_id", "title", "genres"])
+        if not file_exists:
+            self.writer.writerow(["tmdb_id", "title", "genres"])
 
     def close_spider(self, spider=None):
         self.file.close()

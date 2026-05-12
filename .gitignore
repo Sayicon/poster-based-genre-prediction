@@ -9,6 +9,7 @@ __pycache__/
 venv/
 *.egg-info/
 .scrapy/
+.scrapy_job/
 *.log
 labels.csv
 train.csv
