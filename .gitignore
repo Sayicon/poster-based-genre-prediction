@@ -10,3 +10,8 @@ venv/
 *.egg-info/
 .scrapy/
 *.log
+labels.csv
+train.csv
+val.csv
+test.csv
+mlb.pkl

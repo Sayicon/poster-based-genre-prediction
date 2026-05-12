@@ -54,7 +54,11 @@ class CsvExportPipeline:
         return obj
 
     def open_spider(self, spider=None):
-        output_path = Path(self.settings.get("IMAGES_STORE")).parent / "labels.csv"
+        labels_path = self.settings.get("LABELS_PATH")
+        if labels_path:
+            output_path = Path(labels_path)
+        else:
+            output_path = Path(self.settings.get("IMAGES_STORE")).parent / "labels.csv"
         self.file = open(output_path, "w", newline="", encoding="utf-8")
         self.writer = csv.writer(self.file)
         self.writer.writerow(["tmdb_id", "title", "genres"])
