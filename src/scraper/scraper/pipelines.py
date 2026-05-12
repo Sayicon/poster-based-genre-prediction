@@ -1,11 +1,10 @@
 import csv
+from io import BytesIO
 from pathlib import Path
 
 import requests
 from itemadapter import ItemAdapter
-
-
-POSTERS_DIR = None
+from PIL import Image
 
 
 class PosterImagesPipeline:
@@ -36,8 +35,10 @@ class PosterImagesPipeline:
         try:
             resp = self.session.get(poster_url, timeout=10, allow_redirects=True)
             resp.raise_for_status()
-            if len(resp.content) < 5000:
-                raise Exception("Poster too small")
+            img = Image.open(BytesIO(resp.content))
+            w, h = img.size
+            if w < 300 or h < 400:
+                raise Exception(f"Poster too small: {w}x{h}")
             dest.write_bytes(resp.content)
         except Exception as e:
             raise Exception(f"Poster download failed for {tmdb_id}: {e}")
