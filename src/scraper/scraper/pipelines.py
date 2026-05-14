@@ -33,15 +33,17 @@ class PosterImagesPipeline:
             return item
 
         try:
-            resp = self.session.get(poster_url, timeout=10, allow_redirects=True)
+            resp = self.session.get(poster_url, timeout=20, allow_redirects=True)
             resp.raise_for_status()
             img = Image.open(BytesIO(resp.content))
             w, h = img.size
-            if w < 300 or h < 400:
+            if w < 100 or h < 140:
                 raise Exception(f"Poster too small: {w}x{h}")
             dest.write_bytes(resp.content)
         except Exception as e:
-            raise Exception(f"Poster download failed for {tmdb_id}: {e}")
+            # Poster indirilemedi — label yine de CSV'ye yazılır, Phase 2'de filtrelenir
+            if spider:
+                spider.logger.warning(f"Poster skip ({tmdb_id}): {e}")
 
         return item
 
@@ -60,6 +62,17 @@ class CsvExportPipeline:
         else:
             output_path = Path(self.settings.get("IMAGES_STORE")).parent / "labels.csv"
         file_exists = output_path.exists() and output_path.stat().st_size > 0
+
+        self._seen_ids = set()
+        if file_exists:
+            try:
+                with open(output_path, "r", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        self._seen_ids.add(row["tmdb_id"])
+            except Exception:
+                pass
+
         self.file = open(output_path, "a", newline="", encoding="utf-8")
         self.writer = csv.writer(self.file)
         if not file_exists:
@@ -70,6 +83,11 @@ class CsvExportPipeline:
 
     def process_item(self, item, spider=None):
         adapter = ItemAdapter(item)
+        tmdb_id = adapter["tmdb_id"]
+        if tmdb_id in self._seen_ids:
+            return item
+        self._seen_ids.add(tmdb_id)
         genres = "|".join(adapter.get("genres", []))
-        self.writer.writerow([adapter["tmdb_id"], adapter["title"], genres])
+        self.writer.writerow([tmdb_id, adapter["title"], genres])
+        self.file.flush()
         return item

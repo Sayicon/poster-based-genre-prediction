@@ -1,100 +1,88 @@
-# Define here the models for your spider middleware
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import random
+import time
 
-from scrapy import signals
-
-# useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
+from curl_cffi import requests as cffi_requests
+from scrapy.http import HtmlResponse
 
 
-class ScraperSpiderMiddleware:
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the spider middleware does not modify the
-    # passed objects.
+class CurlCffiMiddleware:
+    """
+    Scrapy'nin Python ssl downloader'ını curl_cffi ile değiştirir.
+    Chrome'un TLS parmak izini (JA3) birebir taklit eder — TLS tabanlı bot
+    tespitini (Cloudflare, TMDB vb.) atlatır.
+    """
 
-    @classmethod
-    def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
-
-    def process_spider_input(self, response, spider):
-        # Called for each response that goes through the spider
-        # middleware and into the spider.
-
-        # Should return None or raise an exception.
-        return None
-
-    def process_spider_output(self, response, result, spider):
-        # Called with the results returned from the Spider, after
-        # it has processed the response.
-
-        # Must return an iterable of Request, or item objects.
-        for i in result:
-            yield i
-
-    def process_spider_exception(self, response, exception, spider):
-        # Called when a spider or process_spider_input() method
-        # (from other spider middleware) raises an exception.
-
-        # Should return either None or an iterable of Request or item objects.
-        pass
-
-    async def process_start(self, start):
-        # Called with an async iterator over the spider start() method or the
-        # matching method of an earlier spider middleware.
-        async for item_or_request in start:
-            yield item_or_request
-
-    def spider_opened(self, spider):
-        spider.logger.info("Spider opened: %s" % spider.name)
-
-
-class ScraperDownloaderMiddleware:
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the downloader middleware does not modify the
-    # passed objects.
+    def __init__(self, crawler):
+        self._crawler = crawler
+        self._session = cffi_requests.Session(impersonate="chrome124")
 
     @classmethod
     def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
+        return cls(crawler)
 
-    def process_request(self, request, spider):
-        # Called for each request that goes through the downloader
-        # middleware.
+    def process_request(self, request):
+        headers = {}
+        for k, v in request.headers.items():
+            key = k.decode() if isinstance(k, bytes) else k
+            val = v[0].decode() if isinstance(v[0], bytes) else v[0]
+            headers[key] = val
 
-        # Must either:
-        # - return None: continue processing this request
-        # - or return a Response object
-        # - or return a Request object
-        # - or raise IgnoreRequest: process_exception() methods of
-        #   installed downloader middleware will be called
+        try:
+            r = self._session.get(
+                request.url,
+                headers=headers,
+                timeout=20,
+                allow_redirects=True,
+            )
+            # curl_cffi already decompresses — strip Content-Encoding so
+            # Scrapy's HttpCompressionMiddleware doesn't try to decode again
+            headers = {k: v for k, v in r.headers.items()
+                       if k.lower() != "content-encoding"}
+            return HtmlResponse(
+                url=r.url,
+                status=r.status_code,
+                headers=headers,
+                body=r.content,
+                request=request,
+            )
+        except Exception as e:
+            self._crawler.spider.logger.warning(f"curl_cffi error ({request.url}): {e}")
+            return None  # Scrapy'nin kendi downloader'ına düş
+
+
+class ExponentialBackoffMiddleware:
+    """
+    429 Too Many Requests handler with exponential backoff.
+    Delays: 2s, 4s, 8s, 16s. Returns a retry Request on 429.
+    Safe with CONCURRENT_REQUESTS=1.
+    """
+
+    MAX_RETRIES = 4
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        obj = cls()
+        obj._crawler = crawler
+        return obj
+
+    def process_response(self, request, response):
+        if response.status != 429:
+            return response
+        spider = self._crawler.spider
+        retries = request.meta.get("_backoff_retries", 0)
+        if retries >= self.MAX_RETRIES:
+            spider.logger.error(f"429 max retries exhausted: {request.url}")
+            return response
+        delay = 2 ** (retries + 1) + random.uniform(0, 2)
+        spider.logger.warning(
+            f"429 — backoff {delay:.1f}s "
+            f"(attempt {retries + 1}/{self.MAX_RETRIES}): {request.url}"
+        )
+        time.sleep(delay)
+        retry = request.copy()
+        retry.meta["_backoff_retries"] = retries + 1
+        retry.dont_filter = True
+        return retry
+
+    def process_exception(self, request, exception):
         return None
-
-    def process_response(self, request, response, spider):
-        # Called with the response returned from the downloader.
-
-        # Must either;
-        # - return a Response object
-        # - return a Request object
-        # - or raise IgnoreRequest
-        return response
-
-    def process_exception(self, request, exception, spider):
-        # Called when a download handler or a process_request()
-        # (from other downloader middleware) raises an exception.
-
-        # Must either:
-        # - return None: continue processing this exception
-        # - return a Response object: stops process_exception() chain
-        # - return a Request object: stops process_exception() chain
-        pass
-
-    def spider_opened(self, spider):
-        spider.logger.info("Spider opened: %s" % spider.name)
