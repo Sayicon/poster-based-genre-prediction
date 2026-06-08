@@ -107,9 +107,43 @@ Resmî [TMDB API](https://developer.themoviedb.org/docs/rate-limiting) araştır
 
 ---
 
-## 5. Açık Sorular / Sonraki Adımlar
-- [ ] TMDB API key alınacak (kullanıcı; ücretsiz hesap) → Colab secret olarak verilecek.
-- [ ] API ile dengeli + kombinasyon-farkında çekim.
-- [ ] CV split, 5 transformer fine-tune, tam metrik/figür üretimi.
+## 5. Phase A — TMDB API ile Dengeli Çekim (tamamlandı)
+
+**Yöntem:** İki fazlı toplama — (1) tür bazlı aday havuzu (`/discover/movie?with_genres`), (2) eksiklik-güdümlü greedy seçim: her adımda en eksik tür, en az-türlü filmle doldurulur; baskın türler (Drama/Comedy) "yolcu" olarak en sona atılır (overshoot azaltma). Ayarlar: `PER_GENRE=3000`, `MIN_VOTES=10`, `POOL_FACTOR=1.5`. Aday havuzu ~37k film.
+
+**`vote_count` eşiği neden 10?** `vote_count` bir kalite skoru değil, **popülerlik/bilinirlik** ölçüsüdür. Ama filtresiz (`≥0`) çekim çöp doludur (örn. Documentary `≥0` = 220.948 girdi: kısa film / TV / postersiz / amatör). `≥30` ise rare türleri kısıyordu (History 2.149). Türlerin oy eşiğine göre mevcut film sayısı (TMDB `total_results`):
+
+| Tür | ≥0 | ≥5 | ≥10 | ≥30 |
+|---|---|---|---|---|
+| History | 21.910 | 5.712 | 3.850 | 2.149 |
+| Documentary | 220.948 | 17.450 | 8.485 | 2.621 |
+| Animation | 70.028 | 11.364 | 7.663 | 4.021 |
+| Mystery | 26.302 | 8.670 | 6.359 | 3.572 |
+| Fantasy | 29.489 | 8.569 | 6.377 | 3.858 |
+
+→ `≥10` açık çöpü eler **ve** History dahil tüm rare türleri ≥3.850'ye çıkarır → 3.000 hedefi ulaşılabilir, kalite makul.
+
+**Sonuç (`labels_v2.csv`): 23.640 film, ort. 2.18 tür/film, %100 poster kapsamı.**
+
+| Tür | v2 | | Tür | v2 |
+|---|---|---|---|---|
+| Romance, Mystery, Horror, History, | **3.000** | | Adventure | 3.006 |
+| Family, Documentary, Crime, Animation | (her biri) | | Action | 3.762 |
+| Science Fiction, Fantasy | 3.001 | | Thriller | 3.852 |
+| | | | Comedy | 4.178 |
+| | | | **Drama** | **6.658** |
+
+- **Dengesizlik: v1 7.4x → v2 2.22x.** Rare/orta türler **tam 3.000'de**; History 858 → 3.000.
+- Kalan baskınlık (Drama 6.658) kaçınılmaz multi-label "yolcu" etkisi; eğitimde **class-weight / weighted sampler** ile telafi edilecek — v1'deki gibi ağır `pos_weight` (aşırı tahmine yol açan) DEĞİL.
+- Çoklu-etiket dağılımı: 1 tür → 4.575, 2 → 10.632, 3 → 8.113, 4 → 320 film (v1'de max 8 idi, daha temiz).
+- Figür: `dist_before_after.png` (çekim öncesi v1 vs sonrası v2).
+- **Ban almadan** tamamlandı (HTML scraping'de 3 saatte ~500 film + ban idi; API ile tamamı tek oturumda).
+
+## 6. Açık Sorular / Sonraki Adımlar
+- [x] TMDB API key alındı, dengeli çekim tamamlandı (23.640 film).
+- [ ] **Phase B:** ön işleme + 5-fold CV split (iterative-stratified, multi-label).
+- [ ] `posters/` içinde v1'den kalan ~10.6k kullanılmayan poster var; Drive'a yüklemeden önce `labels_v2`'ye göre budanabilir.
+- [ ] Veri Drive'a yüklenecek (Colab/A100 eğitimi + hocaya paylaşım için).
+- [ ] **Phase C:** 5 transformer fine-tune; **Phase D:** tüm metrikler + figürler.
 
 > _Bu dosya her fazda güncellenecek._
