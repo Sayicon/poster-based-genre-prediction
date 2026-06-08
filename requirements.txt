@@ -1,7 +1,9 @@
 --extra-index-url https://download.pytorch.org/whl/cu124
-scrapy
 torch
 torchvision
+transformers
+accelerate
+requests
 albumentations
 scikit-learn
 scikit-multilearn
@@ -11,3 +13,4 @@ tqdm
 Pillow
 numpy
 matplotlib
+seaborn

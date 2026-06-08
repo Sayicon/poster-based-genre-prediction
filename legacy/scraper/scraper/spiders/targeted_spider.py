@@ -1,6 +1,7 @@
 import ast
 import csv
 import re
+import time
 from pathlib import Path
 
 import scrapy
@@ -36,7 +37,13 @@ class TargetedSpider(scrapy.Spider):
     allowed_domains = ["www.themoviedb.org", "media.themoviedb.org"]
 
     custom_settings = {
-        "JOBDIR": "",  # kendi dedup'imiz var (labels.csv)
+        "JOBDIR": "",
+        "CONCURRENT_REQUESTS": 2,
+        "DOWNLOAD_DELAY": 3,
+        "AUTOTHROTTLE_ENABLED": True,
+        "AUTOTHROTTLE_START_DELAY": 3,
+        "AUTOTHROTTLE_MAX_DELAY": 60,
+        "AUTOTHROTTLE_TARGET_CONCURRENCY": 1.0,
     }
 
     def __init__(self, ids_file=None, *args, **kwargs):
@@ -50,6 +57,9 @@ class TargetedSpider(scrapy.Spider):
     # ------------------------------------------------------------------ startup
 
     async def start(self):
+        t0 = time.time()
+        self.logger.warning(f"[TIMING] start() girdi: t=0.00s")
+
         gap_report_path = self.settings.get("GAP_REPORT_PATH", "")
         if not gap_report_path or not Path(gap_report_path).exists():
             self.logger.error("GAP_REPORT_PATH ayarlanmamis veya dosya yok")
@@ -61,7 +71,7 @@ class TargetedSpider(scrapy.Spider):
                 if row["type"] == "single" and int(row["deficit"]) > 0:
                     self.targets[row["combination"]] = int(row["target_count"])
 
-        self.logger.info(f"Hedef turler ({len(self.targets)}): {list(self.targets)}")
+        self.logger.warning(f"[TIMING] gap_report yuklendi: t={time.time()-t0:.2f}s, {len(self.targets)} hedef")
 
         # labels.csv'den mevcut sayimlari yukle + gorulmus ID'leri topla
         labels_path = self.settings.get("LABELS_PATH", "")
@@ -70,17 +80,22 @@ class TargetedSpider(scrapy.Spider):
             with open(labels_path, encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     seen_ids.add(str(row["tmdb_id"]))
-                    try:
-                        genres = ast.literal_eval(row["genres"])
-                    except Exception:
-                        continue
+                    raw = row.get("genres", "")
+                    # Pipeline pipe-separated yazar: "Action|Drama"
+                    if raw.startswith("["):
+                        try:
+                            genres = ast.literal_eval(raw)
+                        except Exception:
+                            genres = []
+                    else:
+                        genres = [g.strip() for g in raw.split("|") if g.strip()]
                     for g in genres:
                         if g in TARGET_GENRES:
                             self.genre_counts[g] = self.genre_counts.get(g, 0) + 1
 
-            self.logger.info(
-                f"labels.csv: {len(seen_ids):,} gorulmus ID, "
-                f"mevcut sayimlar: {dict(sorted(self.genre_counts.items()))}"
+            self.logger.warning(
+                f"[TIMING] labels.csv yuklendi: t={time.time()-t0:.2f}s, "
+                f"{len(seen_ids):,} ID, sayimlar: {dict(sorted(self.genre_counts.items()))}"
             )
 
         # labels_v2.csv varsa onu da say (devam edilen cekim)
@@ -92,14 +107,21 @@ class TargetedSpider(scrapy.Spider):
                     if tid in seen_ids:
                         continue
                     seen_ids.add(tid)
-                    try:
-                        genres = ast.literal_eval(row["genres"])
-                    except Exception:
-                        continue
+                    raw = row.get("genres", "")
+                    if raw.startswith("["):
+                        try:
+                            genres = ast.literal_eval(raw)
+                        except Exception:
+                            genres = []
+                    else:
+                        genres = [g.strip() for g in raw.split("|") if g.strip()]
                     for g in genres:
                         if g in TARGET_GENRES:
                             self.genre_counts[g] = self.genre_counts.get(g, 0) + 1
-            self.logger.info(f"labels_v2.csv de yuklendi. Toplam gorulmus: {len(seen_ids):,}")
+            self.logger.warning(
+                f"[TIMING] labels_v2.csv yuklendi: t={time.time()-t0:.2f}s, "
+                f"toplam gorulmus: {len(seen_ids):,}"
+            )
 
         if self._all_targets_met():
             self.logger.info("Tum hedefler zaten karsilandi. Cekim gerekmiyor.")
@@ -111,16 +133,63 @@ class TargetedSpider(scrapy.Spider):
             self.logger.error(f"ids_file bulunamadi: {self.ids_file}")
             return
 
-        ids = Path(self.ids_file).read_text(encoding="utf-8").splitlines()
-        ids = [i.strip() for i in ids if i.strip() and i.strip() not in seen_ids]
-        self.logger.info(f"{len(ids):,} ID kuyruga alindi")
+        ids_file_size = Path(self.ids_file).stat().st_size
+        checkpoint_path = Path(labels_path).parent / "ids_checkpoint.txt" if labels_path else None
 
-        for tmdb_id in ids:
-            yield scrapy.Request(
-                f"{TMDB_BASE}/movie/{tmdb_id}",
-                callback=self.parse_detail,
-                meta={"tmdb_id": tmdb_id},
-            )
+        skip_lines = 0
+        if checkpoint_path and checkpoint_path.exists():
+            try:
+                skip_lines = int(checkpoint_path.read_text(encoding='utf-8-sig').strip())
+            except Exception:
+                skip_lines = 0
+
+        self.logger.warning(
+            f"[TIMING] ID dosyasi iterasyonu basliyor: t={time.time()-t0:.2f}s, "
+            f"dosya boyutu={ids_file_size/1024/1024:.1f}MB, seen_ids={len(seen_ids):,}, "
+            f"atlanacak_satir={skip_lines:,}"
+        )
+
+        lines_read = 0
+        yields_sent = 0
+        first_yield_done = False
+
+        with open(self.ids_file, encoding="utf-8") as f:
+            for line in f:
+                lines_read += 1
+
+                if lines_read <= skip_lines:
+                    continue
+
+                tmdb_id = line.strip()
+                if tmdb_id and tmdb_id not in seen_ids:
+                    if not first_yield_done:
+                        self.logger.warning(
+                            f"[TIMING] ILK REQUEST gonderildi: t={time.time()-t0:.2f}s, "
+                            f"ilk_id={tmdb_id}, o_ana_okunan_satir={lines_read:,}"
+                        )
+                        first_yield_done = True
+                    yields_sent += 1
+                    if yields_sent % 50_000 == 0:
+                        self.logger.warning(
+                            f"[TIMING] {yields_sent:,} request gonderildi, "
+                            f"{lines_read:,} satir okundu, t={time.time()-t0:.2f}s"
+                        )
+                    yield scrapy.Request(
+                        f"{TMDB_BASE}/movie/{tmdb_id}",
+                        callback=self.parse_detail,
+                        meta={"tmdb_id": tmdb_id},
+                    )
+
+                # Her 500 satirda checkpoint kaydet
+                if checkpoint_path and lines_read % 500 == 0:
+                    checkpoint_path.write_text(str(lines_read))
+
+        if checkpoint_path:
+            checkpoint_path.write_text(str(lines_read))
+        self.logger.warning(
+            f"[TIMING] ID dosyasi bitti: t={time.time()-t0:.2f}s, "
+            f"toplam_satir={lines_read:,}, toplam_yield={yields_sent:,}"
+        )
 
     # ------------------------------------------------------------------ helpers
 
