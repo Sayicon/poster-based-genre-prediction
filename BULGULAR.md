@@ -139,11 +139,20 @@ Resmî [TMDB API](https://developer.themoviedb.org/docs/rate-limiting) araştır
 - Figür: `dist_before_after.png` (çekim öncesi v1 vs sonrası v2).
 - **Ban almadan** tamamlandı (HTML scraping'de 3 saatte ~500 film + ban idi; API ile tamamı tek oturumda).
 
-## 6. Açık Sorular / Sonraki Adımlar
-- [x] TMDB API key alındı, dengeli çekim tamamlandı (23.640 film).
-- [ ] **Phase B:** ön işleme + 5-fold CV split (iterative-stratified, multi-label).
-- [ ] `posters/` içinde v1'den kalan ~10.6k kullanılmayan poster var; Drive'a yüklemeden önce `labels_v2`'ye göre budanabilir.
-- [ ] Veri Drive'a yüklenecek (Colab/A100 eğitimi + hocaya paylaşım için).
-- [ ] **Phase C:** 5 transformer fine-tune; **Phase D:** tüm metrikler + figürler.
+## 6. Phase B — Ön İşleme + 5-Fold CV (tamamlandı)
+
+`labels_v2.csv` (23.640 film) yüklendi, 15 hedef türe filtrelendi, poster varlık+boyut kontrolü (**0 satır düştü, %100 sağlam**). `MultiLabelBinarizer` (15 sınıf) → `mlb.pkl`.
+
+**5-fold CV** (`MultilabelStratifiedKFold`, seed=42): her fold ~18.900 train / ~4.730 val.
+- **CV bütünlüğü:** train∩val overlap = 0; her film **tam 1** val fold'unda (tüm val birleşimi = 23.640 benzersiz).
+- **Stratifikasyon mükemmel:** her türün val oranı 5 fold'da neredeyse özdeş (Drama %28.1–28.3, Action %15.9–16.0, History %12.7–12.8). Multi-label dağılımı korunuyor.
+- Değerlendirme Phase D'de **OOF** (out-of-fold) ile yapılacak; ayrı hold-out yok.
+- Çıktılar: `folds/fold_{0..4}_{train,val}.csv`, `mlb.pkl`, `cooccurrence_v2.png` (15×15 birlikte-geçiş matrisi).
+
+## 7. Açık Sorular / Sonraki Adımlar
+- [x] Phase A (dengeli çekim) ve Phase B (CV split) tamam.
+- [ ] **Veri Drive'a yüklenecek** (posters + labels_v2 + folds + mlb) — Colab/A100 eğitimi + hocaya paylaşım için. ~23.6k poster: zip'leyip yüklemek pratik.
+- [ ] **Phase C:** 5 transformer fine-tune (ViT/DeiT/BeiT/Swin/CvT), 5-fold; Drama dengesizliği class-weight/sampler ile telafi.
+- [ ] **Phase D:** OOF metrikler (Accuracy/Precision/Recall/Specificity/F/AUC) + confusion + ROC + loss eğrileri + train/inference time.
 
 > _Bu dosya her fazda güncellenecek._

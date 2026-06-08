@@ -91,12 +91,12 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 
 **Notebook:** `08_preprocess_cv.ipynb`
 
-- [ ] `labels_v2.csv` yükle; postersiz/bozuk satırları düşür; genres parse.
-- [ ] `MultiLabelBinarizer` (15 tür) → `mlb.pkl`.
-- [ ] **5-fold CV** — `iterstrat.MultilabelStratifiedKFold` → `folds/fold_{i}_{train,val}.csv`.
-- [ ] Değerlendirme **out-of-fold (OOF)** tahminlerle yapılır (her örnek val fold'undayken bir kez tahmin edilir) — ayrı hold-out'a gerek yok, tüm veri kullanılır.
-- [ ] Poster ön işleme notu: posterler 2:3 portre; modele göre 224×224 (Swin-V2 için 256) resize/pad. Aspect-ratio kararını belgele.
-- [ ] Temizleme öncesi/sonrası tür dağılımı + co-occurrence heatmap (rapor figürü). → BULGULAR.md.
+- [x] `labels_v2.csv` yükle; postersiz/bozuk satırları düşür; genres parse. (23.640 film, 0 düşüldü)
+- [x] `MultiLabelBinarizer` (15 tür) → `mlb.pkl`.
+- [x] **5-fold CV** — `iterstrat.MultilabelStratifiedKFold` → `folds/fold_{i}_{train,val}.csv`. (~18.9k train / ~4.7k val, sıfır overlap, mükemmel stratifikasyon)
+- [x] Temizleme öncesi/sonrası tür dağılımı + co-occurrence heatmap. → `cooccurrence_v2.png`, BULGULAR.md §6.
+- [ ] _(Phase C'de)_ Poster ön işleme: 2:3 portre → modele göre 224×224 (Swin-V2 için 256) resize. Aspect-ratio kararı belgelenecek.
+- [ ] _(Phase D'de)_ Değerlendirme **out-of-fold (OOF)** tahminlerle (her örnek val fold'undayken 1 kez) — ayrı hold-out yok.
 
 ---
 
