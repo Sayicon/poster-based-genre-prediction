@@ -26,3 +26,7 @@ gap_report.csv
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Veri paketleri / figürler (Drive'a gider, repoya değil)
+*.zip
+*.png
