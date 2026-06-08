@@ -76,12 +76,12 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 
 **Notebook:** `07_api_collect.ipynb` | **Kaynak:** `src/data/tmdb_api.py`
 
-- [ ] TMDB API key (v3) / read token (v4) alınır (kullanıcı), Colab secret olarak verilir.
-- [ ] `/discover/movie?with_genres=<id>` ile **tür bazlı** çekim; her hedef tür için bol havuz (örn. ≥ 3.000 aday), `vote_count` ile kalite filtresi.
-- [ ] `poster_path` olanları al; `image.tmdb.org/t/p/w500/...` ile poster indir; dedupe (tmdb_id).
-- [ ] **Kombinasyon-farkında doldurma:** seyrek ikili kombinasyonlar için `with_genres=a,b` (AND) sorgusuyla hedefli ek çekim.
-- [ ] Dengeli set kur: her tür ~2.500'e yakın; Drama/Comedy kıs. → `labels_v2.csv`.
-- [ ] Çekim öncesi/sonrası dağılım grafikleri (vize raporu için). → BULGULAR.md güncelle.
+- [x] TMDB API key (v3) / read token (v4) alındı (kullanıcı), `.env`'e konuldu.
+- [x] `/discover/movie?with_genres=<id>` ile **tür bazlı** çekim; her tür için bol aday havuzu, `vote_count.gte=10` ile çöp filtresi (eşik kararı: BULGULAR.md §5).
+- [x] `poster_path` olanları al; `image.tmdb.org/t/p/w500/...` ile poster indir; dedupe (tmdb_id) — **%100 poster kapsamı**.
+- [x] **Kombinasyon-farkındalık:** eksiklik-güdümlü greedy seçim baskın türleri "yolcu" olarak kısıtlayıp kombinasyonları doğal kapsadı — ayrı `with_genres=a,b` (AND) sorgusuna gerek kalmadı.
+- [x] Dengeli set: her tür **3.000** (Drama/Comedy yolcu etkisiyle yüksek; dengesizlik 7.4x → 2.22x). → `labels_v2.csv` (**23.640 film**).
+- [x] Çekim öncesi/sonrası dağılım grafiği (`dist_before_after.png`). → BULGULAR.md §5 güncellendi.
 
 **TMDB Genre ID'leri:** Action=28, Adventure=12, Animation=16, Comedy=35, Crime=80, Documentary=99, Drama=18, Family=10751, Fantasy=14, History=36, Horror=27, Mystery=9648, Romance=10749, SciFi=878, Thriller=53.
 
@@ -94,7 +94,7 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 - [ ] `labels_v2.csv` yükle; postersiz/bozuk satırları düşür; genres parse.
 - [ ] `MultiLabelBinarizer` (15 tür) → `mlb.pkl`.
 - [ ] **5-fold CV** — `iterstrat.MultilabelStratifiedKFold` → `folds/fold_{i}_{train,val}.csv`.
-- [ ] Ayrı bir **test seti** (hold-out) ayrılır (final raporda CV-dışı genelleme için).
+- [ ] Değerlendirme **out-of-fold (OOF)** tahminlerle yapılır (her örnek val fold'undayken bir kez tahmin edilir) — ayrı hold-out'a gerek yok, tüm veri kullanılır.
 - [ ] Poster ön işleme notu: posterler 2:3 portre; modele göre 224×224 (Swin-V2 için 256) resize/pad. Aspect-ratio kararını belgele.
 - [ ] Temizleme öncesi/sonrası tür dağılımı + co-occurrence heatmap (rapor figürü). → BULGULAR.md.
 
