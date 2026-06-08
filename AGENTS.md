@@ -10,6 +10,8 @@ transformer** fine-tune (PyTorch / HuggingFace). Google Colab (A100) eğitim. No
 ## Genel Kural
 Her fazın sonunda: (1) AGENTS.md'yi oku, tamamlanan maddeleri işaretle/güncelle; (2) **[BULGULAR.md](BULGULAR.md)'ye o fazda ne yaptık / ne bulduk / hangi sorunu nasıl çözdük bilgilerini ekle.**
 
+**Git kuralı:** Commit mesajlarına `Co-Authored-By` / "Generated with Claude" gibi hiçbir trailer/imza **eklenmez.**
+
 ---
 
 ## İsterler Özeti (PDF'ten — her madde puanlamaya tabi)
