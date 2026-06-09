@@ -1,0 +1,343 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage[utf8]{inputenc}   % Türkçe karakterler
+\usepackage[T1]{fontenc}      % ç ş ğ ı ö ü İ
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\begin{document}
+
+\title{Film Afişlerinden Çoklu-Etiketli Tür Tahmini:\\
+Beş Görsel Transformatör Modelinin Karşılaştırmalı Değerlendirmesi}
+
+\author{\IEEEauthorblockN{Mustafa Kerem Çekici}
+\IEEEauthorblockA{\textit{Bilgisayar Mühendisliği Bölümü} \\
+\textit{[Üniversite Adı]}\\
+İzmit, Türkiye \\
+231307121 -- keremcek70@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Bu çalışmada, film afişi görselinden filmin türlerinin tahmin edilmesi
+çoklu-etiketli (multi-label) bir sınıflandırma problemi olarak ele alınmıştır.
+TMDB'nin resmî API'si kullanılarak 15 hedef tür için eksiklik-güdümlü bir
+örnekleme algoritmasıyla dengeli ve kombinasyon-farkında bir veri kümesi
+(23.640 film) oluşturulmuştur. Beş farklı görsel transformatör modeli
+(ViT, DeiT, BeiT, Swin ve CvT) ImageNet ön-eğitiminden başlanarak ince
+ayarlanmış ve 5-katlı çapraz doğrulama ile değerlendirilmiştir. En iyi sonucu
+Swin modeli vermiştir (makro F1 = 0,562; makro AUC = 0,862), bu da ön-eğitimli
+CNN tabanlı bir referansa (0,383) göre +0,179 ve şans seviyesindeki rasgele bir
+tahmin ediciye (0,149) göre yaklaşık 3,8 katlık bir iyileşmedir. Dengeli veri
+sayesinde önceki çalışmadaki aşırı tahmin sorunu giderilmiş (film başına ortalama
+$\sim$2,4 tür, gerçek değer 2,18) ve frekans biası ortadan kalkmıştır; nadir
+türlerdeki belirgin başarı artışı modelin görsel sinyali gerçekten öğrendiğini,
+salt etiket korelasyonlarını ezberlemediğini göstermektedir.
+\end{abstract}
+
+\begin{IEEEkeywords}
+çoklu-etiket sınıflandırma, görsel transformatör, film afişi, transfer öğrenme,
+çapraz doğrulama, TMDB
+\end{IEEEkeywords}
+
+\section{Giriş}
+Film afişleri, türü tek bir bakışta sezdiren güçlü görsel kodlar içerir: korku
+afişlerindeki karanlık tonlar, animasyonun çizgi-film estetiği, romantik
+filmlerin sıcak renk paleti gibi. Bu çalışmanın amacı, yalnızca afiş görselini
+girdi alarak bir filmin türlerini tahmin eden bir model geliştirmektir. Bir film
+birden çok türe ait olabildiğinden problem doğal olarak \textit{çoklu-etiketlidir}.
+
+İlk denememizde (v1) sıfırdan eğitilen bir evrişimli ağ (CNN) ve dondurulmuş bir
+MobileNetV3 referansı kullanılmış; ancak dengesiz veri yüzünden model türlerin
+görsel özelliklerini öğrenmek yerine sınıf frekanslarını ezberlemiş, film başına
+5--7 tür tahmin ederek aşırı tahmin yapmıştır. Bu rapor, problemi sıfırdan ele
+alan ikinci sürümü (v2) sunar. Katkılarımız:
+\begin{itemize}
+\item TMDB API üzerinden \textbf{dengeli ve kombinasyon-farkında} bir veri kümesi
+oluşturan iki aşamalı bir örnekleme algoritması;
+\item Beş farklı görsel transformatörün ($ViT$, $DeiT$, $BeiT$, $Swin$, $CvT$)
+aynı koşullarda 5-katlı çapraz doğrulamayla karşılaştırılması;
+\item Aşırı tahmin ve frekans biası sorunlarının nicel olarak giderildiğinin
+gösterilmesi ve rasgele/frekans-öncül referanslarla modelin gerçek görsel öğrenme
+yaptığının kanıtlanması.
+\end{itemize}
+
+\section{Veri Toplama ve Temizleme}
+\subsection{HTML Kazımadan Resmî API'ye Geçiş}
+İlk yaklaşımda film verileri \texttt{themoviedb.org} sitesinin HTML sayfaları
+kazınarak toplanmıştır. Site agresif hız sınırlaması uyguladığından, TLS parmak
+izi taklidi ve VPN kullanılmasına rağmen sürekli HTTP 429 (Too Many Requests)
+yanıtları alınmıştır: tek bir hedefli kazıma oturumunda 9.619 adet 429 yanıtı
+kaydedilmiş ve 864 film kalıcı olarak kaybedilmiştir; pratik hız 3 saatte
+$\sim$500 film düzeyinde kalmıştır.
+
+Bu nedenle veri toplama, TMDB'nin \textbf{resmî JSON API}'sine taşınmıştır. API
+kâr amacı gütmeyen kullanımda ücretsizdir, günlük istek limiti yoktur ve
+$\sim$40--50 istek/saniyeye izin verir. \texttt{/discover/movie} uç noktası, her
+filmin tür listesini (\texttt{genre\_ids}) ve afiş yolunu (\texttt{poster\_path})
+tek istekte döndürdüğünden, çoklu-etiketler ek maliyet olmadan elde edilmiş ve
+afişler yalnızca kabul edilen filmler için indirilmiştir.
+
+\subsection{Dengeli ve Kombinasyon-Farkında Örnekleme}
+v1 veri kümesi ileri derecede dengesizdi (Drama 6.381 örnek, History 858 örnek;
+$\sim$7,4 kat). Dengeyi sağlamak için iki aşamalı bir yöntem kullanılmıştır:
+\textbf{(1) Aday havuzu:} her tür için \texttt{with\_genres} filtresiyle
+\texttt{vote\_count}$\geq$10 olan aday filmler toplanır (kalitesiz/amatör/postersiz
+girdiler elenir). \textbf{(2) Eksiklik-güdümlü açgözlü seçim:} her adımda en eksik
+tür belirlenir ve bu türü içeren, en az sayıda tür taşıyan film seçilir; baskın
+türler (Drama, Comedy) ``yolcu'' olarak en sona bırakılır. Böylece nadir türler
+hedefe ulaşırken baskın türlerin aşırı şişmesi sınırlanır.
+
+\texttt{vote\_count} eşiği bir kalite ölçüsü değil, bilinirlik göstergesidir;
+ancak filtresiz çekim çöp doludur (örn. Documentary için $\sim$220.000 girdi).
+Eşik 30 alındığında History yalnızca 2.149 filmde kalıyordu; eşik 10'a
+düşürüldüğünde tüm nadir türler 3.000 hedefine ulaşabilecek kadar
+($\geq$3.850) aday sağlamıştır.
+
+\subsection{Sonuç Veri Kümesi}
+Nihai veri kümesi \textbf{23.640 film} içerir; film başına ortalama 2,18 tür
+düşmektedir ve afiş kapsamı \%100'dür. Dengesizlik 7,4 kattan 2,22 kata
+düşürülmüştür (nadir/orta türlerin tamamı $\sim$3.000 örneğe çıkarılmış,
+History 858'den 3.000'e taşınmıştır). Çekim öncesi/sonrası tür dağılımı
+Şekil~\ref{fig:dist}'te, türler arası birlikte-geçiş (co-occurrence) matrisi
+Şekil~\ref{fig:cooc}'da verilmiştir.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{dist_before_after.png}}
+\caption{Tür dağılımı: çekim öncesi (v1, dengesiz) ve sonrası (v2, dengeli).}
+\label{fig:dist}
+\end{figure}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{cooccurrence_v2.png}}
+\caption{v2 veri kümesinde türler arası birlikte-geçiş matrisi.}
+\label{fig:cooc}
+\end{figure}
+
+\section{Yöntem}
+\subsection{Modeller}
+Beş farklı görsel transformatör, ImageNet ön-eğitimli ağırlıklardan başlanarak
+ince ayarlanmıştır: \textbf{ViT} (saf öz-dikkat tabanlı transformatör)~\cite{vit},
+\textbf{DeiT} (veri-verimli, damıtma ile eğitilen ViT)~\cite{deit}, \textbf{BeiT}
+(maskeli görüntü modellemesiyle ön-eğitilmiş)~\cite{beit}, \textbf{Swin}
+(kaydırmalı pencerelerle hiyerarşik transformatör)~\cite{swin} ve \textbf{CvT}
+(evrişim katmanlarıyla zenginleştirilmiş transformatör)~\cite{cvt}. Tüm modeller
+\textit{base} ölçeğinde olup CvT-13 daha küçük kapasitelidir. Modeller HuggingFace
+Transformers~\cite{hf} kütüphanesi üzerinden, sınıflandırıcı başı 15 türe
+uyarlanarak (\texttt{problem\_type = multi\_label\_classification}) yüklenmiştir.
+
+\subsection{Ön İşleme ve Eğitim}
+Afişler 2:3 dikey orana sahiptir; her model için $224\times224$ piksele yeniden
+boyutlandırılmış (kareye sıkıştırma), modelin kendi ortalama/standart sapma
+değerleriyle normalize edilmiş ve eğitimde hafif renk artırımı uygulanmıştır.
+Kayıp fonksiyonu \texttt{BCEWithLogitsLoss}'tur; veri dengeli olduğundan ağır
+\texttt{pos\_weight} kullanılmamıştır (v1'de bu, aşırı tahmine yol açmıştı).
+Optimizasyon AdamW (öğrenme oranı $5\times10^{-5}$, ağırlık sönümü $0{,}01$),
+kosinüs ısınma çizelgesi ve karma duyarlık (AMP) ile yapılmıştır; toplu boyut 64,
+epoch sayısı 5'tir.
+
+\subsection{Çapraz Doğrulama ve Değerlendirme}
+Veri kümesi, çoklu-etiket dağılımını koruyan \texttt{MultilabelStratifiedKFold}
+ile~\cite{stratif} \textbf{5 kata} bölünmüştür (kat başına $\sim$18.900 eğitim /
+$\sim$4.730 doğrulama; katlar arası örtüşme sıfır, mükemmel katmanlaşma). Her
+örnek tam olarak bir kez doğrulama katında bulunduğundan, beş katın doğrulama
+tahminleri birleştirilerek \textbf{kat-dışı (out-of-fold, OOF)} tahminler elde
+edilmiş ve tüm metrikler bu birleşik tahminler üzerinden hesaplanmıştır. Sınıf
+başına eşik, F1'i en üst düzeye çıkaracak biçimde $[0{,}3;\,0{,}7]$ aralığında
+optimize edilmiştir. Çoklu-etiket olduğundan Accuracy, Precision,
+Recall (Sensitivity), Specificity, F-Score ve AUC değerleri sınıf başına
+hesaplanıp makro/mikro ortalaması alınmıştır.
+
+\section{Deneysel Sonuçlar}
+\subsection{Model Karşılaştırması}
+Tablo~\ref{tab:models} beş modelin sonuçlarını v1 referansları ve rasgele
+referanslarla birlikte sunar. \textbf{En iyi model Swin}'dir (makro F1 = 0,562).
+Beş transformatörün tamamı v1 referansını (0,383) açık biçimde geçmiştir.
+
+\begin{table}[htbp]
+\caption{Model karşılaştırması (OOF, eşik-optimize)}
+\begin{center}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Makro F1} & \textbf{Mikro F1} & \textbf{Makro AUC} & \textbf{Prec.} & \textbf{Rec.}\\
+\midrule
+\textbf{Swin} & \textbf{0,562} & 0,566 & 0,862 & 0,541 & 0,587\\
+BeiT & 0,534 & 0,539 & 0,844 & 0,517 & 0,555\\
+ViT  & 0,527 & 0,535 & 0,841 & 0,512 & 0,545\\
+DeiT & 0,524 & 0,530 & 0,836 & 0,519 & 0,532\\
+CvT  & 0,501 & 0,509 & 0,823 & 0,474 & 0,536\\
+\midrule
+Frozen baseline (v1) & 0,383 & -- & -- & -- & --\\
+Scratch CNN (v1) & 0,333 & -- & -- & -- & --\\
+Rasgele ($\sim$2,4/film) & 0,149 & -- & -- & -- & --\\
+Frekans-öncül & 0,146 & -- & -- & -- & --\\
+\bottomrule
+\end{tabular}
+\label{tab:models}
+\end{center}
+\end{table}
+
+Sınıf başına F1 değerlerinin model bazında karşılaştırması
+Şekil~\ref{fig:perclass}'te verilmiştir.
+
+\begin{figure*}[htbp]
+\centerline{\includegraphics[width=\textwidth]{per_class_f1_models.png}}
+\caption{Sınıf başına F1 değerleri (beş model).}
+\label{fig:perclass}
+\end{figure*}
+
+\subsection{En İyi Modelin Sınıf Bazlı Metrikleri}
+Tablo~\ref{tab:perclass} Swin modelinin sınıf başına tüm metriklerini gösterir.
+En yüksek başarı Animation türündedir (F1 = 0,863; AUC = 0,980) -- çizgi-film
+estetiği güçlü ve ayırt edici bir görsel imza taşır. En düşük başarılar
+görsel olarak en belirsiz türlerde görülmektedir (Fantasy 0,419; Mystery 0,432;
+Crime 0,440). Özgüllük (specificity) değerlerinin yüksekliği (0,78--0,99) yanlış
+pozitiflerin az olduğunu, yani aşırı tahminin olmadığını doğrular.
+
+\begin{table*}[htbp]
+\caption{Swin modeli -- sınıf başına metrikler (OOF, eşik-optimize)}
+\begin{center}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Tür} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall/Sens.} & \textbf{Specificity} & \textbf{F1} & \textbf{AUC}\\
+\midrule
+Action          & 0,874 & 0,596 & 0,643 & 0,917 & 0,619 & 0,890\\
+Adventure       & 0,850 & 0,422 & 0,478 & 0,905 & 0,448 & 0,821\\
+Animation       & 0,966 & 0,896 & 0,833 & 0,986 & \textbf{0,863} & 0,980\\
+Comedy          & 0,869 & 0,620 & 0,669 & 0,912 & 0,644 & 0,887\\
+Crime           & 0,847 & 0,411 & 0,473 & 0,901 & 0,440 & 0,816\\
+Documentary     & 0,893 & 0,573 & 0,614 & 0,933 & 0,593 & 0,901\\
+Drama           & 0,753 & 0,550 & 0,674 & 0,784 & 0,606 & 0,811\\
+Family          & 0,905 & 0,613 & 0,681 & 0,938 & 0,645 & 0,917\\
+Fantasy         & 0,850 & 0,413 & 0,426 & 0,912 & 0,419 & 0,782\\
+History         & 0,863 & 0,461 & 0,482 & 0,918 & 0,471 & 0,841\\
+Horror          & 0,901 & 0,601 & 0,662 & 0,936 & 0,630 & 0,910\\
+Mystery         & 0,848 & 0,412 & 0,454 & 0,906 & 0,432 & 0,803\\
+Romance         & 0,875 & 0,506 & 0,563 & 0,920 & 0,533 & 0,866\\
+Science Fiction & 0,889 & 0,564 & 0,559 & 0,937 & 0,561 & 0,868\\
+Thriller        & 0,827 & 0,475 & 0,590 & 0,873 & 0,526 & 0,844\\
+\midrule
+\textbf{Makro}  & 0,867 & 0,541 & 0,587 & 0,912 & \textbf{0,562} & 0,862\\
+\bottomrule
+\end{tabular}
+\label{tab:perclass}
+\end{center}
+\end{table*}
+
+\subsection{Karmaşıklık Matrisleri ve ROC Eğrileri}
+Beş modelin tamamı için sınıf başına karmaşıklık matrisleri ve teke-karşı-tümü
+(one-vs-rest) ROC eğrileri üretilmiştir; yer kısıtı nedeniyle en iyi modelin
+(Swin) sonuçları Şekil~\ref{fig:cm} ve Şekil~\ref{fig:roc}'da gösterilmektedir.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{confusion_swin.png}}
+\caption{Swin -- sınıf başına karmaşıklık matrisleri.}
+\label{fig:cm}
+\end{figure}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{roc_swin.png}}
+\caption{Swin -- ROC eğrileri (one-vs-rest), makro AUC = 0,862.}
+\label{fig:roc}
+\end{figure}
+
+\subsection{Eğitim Eğrileri ve Süreler}
+Her modelin beş katına ait eğitim/doğrulama kayıp eğrileri
+Şekil~\ref{fig:loss}'te verilmiştir. Yüksek kapasiteli modeller (ViT, DeiT,
+BeiT, Swin) 2.--3. epoch'tan sonra aşırı öğrenmeye başlarken (eğitim kaybı
+düşerken doğrulama kaybı yükselir), CvT 5 epoch'ta hâlâ yetersiz öğrenme
+(underfitting) bölgesindedir; bu, kapasite/veri dengesinin bir göstergesidir.
+En iyi-F1 kontrol noktası saklandığından aşırı öğrenme son modeli olumsuz
+etkilememiştir. Eğitim ve çıkarım süreleri Tablo~\ref{tab:time}'de özetlenmiştir.
+
+\begin{figure*}[htbp]
+\centerline{\includegraphics[width=\textwidth]{loss_curves.png}}
+\caption{Kat başına eğitim/doğrulama kayıp eğrileri (her model).}
+\label{fig:loss}
+\end{figure*}
+
+\begin{table}[htbp]
+\caption{Eğitim/çıkarım süresi ve ortalama tahmin sayısı}
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Eğitim (dk/kat)} & \textbf{Çıkarım (ms/görsel)} & \textbf{Ort. tür/film}\\
+\midrule
+ViT  & 3,94 & 1,58 & 2,36\\
+DeiT & 3,96 & 1,58 & 2,29\\
+BeiT & 4,16 & 1,60 & 2,39\\
+Swin & 5,84 & 1,63 & 2,41\\
+CvT  & 4,73 & 1,58 & 2,52\\
+\bottomrule
+\end{tabular}
+\label{tab:time}
+\end{center}
+\end{table}
+
+\subsection{Kritik Kontroller}
+\textbf{Aşırı tahmin giderildi:} tüm modeller film başına ortalama 2,3--2,5 tür
+tahmin etmektedir (gerçek değer 2,18), oysa v1'de bu 5--7 idi.
+\textbf{Frekans biası giderildi:} v1'de en başarılı türler en sık görülen
+Drama/Comedy, en başarısızları ise nadir History/Documentary ($\sim$0,10) idi.
+v2'de en başarılı tür Animation (0,863) olmuş; History 0,10'dan 0,47'ye,
+Documentary 0,11'den 0,59'a yükselmiştir. Bu, modelin frekans yerine görsel
+sinyali öğrendiğini gösterir.
+
+\textbf{Rasgele referansla karşılaştırma:} film başına $\sim$2,4 tür rasgele
+tahmin edildiğinde makro F1 yalnızca 0,149; afişe hiç bakmadan sınıf
+frekanslarına göre tahmin (frekans-öncül) edildiğinde 0,146 elde edilmektedir.
+Swin'in 0,562 değeri, şans seviyesinin \textbf{$\sim$3,8 katıdır} ve
+frekans-öncül referansı 0,42 puan geçmektedir; dolayısıyla tahmin gücü
+korelasyon/frekanstan değil, doğrudan afiş görselinden gelmektedir. Örnek
+tahminler Şekil~\ref{fig:samples}'te sunulmuştur.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{samples_swin.png}}
+\caption{Swin -- örnek afişler için gerçek ve tahmin edilen türler.}
+\label{fig:samples}
+\end{figure}
+
+\section{Tartışma}
+Sonuçlar, dengeli ve kombinasyon-farkında veri toplamanın çoklu-etiket
+afiş sınıflandırmasında belirleyici olduğunu göstermektedir: v1'deki aşırı
+tahmin ve frekans biası, ağır kayıp ağırlıklandırmasından değil, veri
+dengesizliğinden kaynaklanıyordu ve kaynağında çözülmüştür. Mimari açıdan,
+hiyerarşik ve yerel-dikkatli Swin'in en iyi sonucu vermesi, görece küçük
+veri kümelerinde tümevarımsal ön-yargısı daha güçlü modellerin saf ViT'e
+üstün geldiği yönündeki bulgularla tutarlıdır. CvT'nin düşük başarısı, küçük
+kapasitesi ve 5 epoch'ta yetersiz öğrenmesiyle açıklanabilir.
+
+\textbf{Co-occurrence (etiket korelasyonu) riski:} Comedy--Romance gibi sık
+birlikte görülen türlerde modelin görsel öğrenme yerine etiket korelasyonunu
+sömürme riski vardır. Veri kümesini kombinasyon dengesine dikkat ederek
+oluşturmak bu riski azaltmıştır ve nadir türlerdeki büyük başarı artışı riskin
+baskın olmadığını göstermektedir; ancak bu risk tamamen elenmiş değildir.
+Ayrıca afişlerin kareye sıkıştırılması en/boy oranını bozmaktadır; en zayıf
+türler (Fantasy, Mystery, Crime) görsel olarak en belirsiz türlerdir.
+
+\section{Sonuç}
+Film afişinden çoklu-etiketli tür tahmini için beş görsel transformatör aynı
+koşullarda karşılaştırılmıştır. En iyi model Swin, makro F1 = 0,562 ile v1
+referansına göre yaklaşık \%47 görece iyileşme sağlamış; aşırı tahmin ve frekans
+biası nicel olarak giderilmiş, rasgele referanslarla modelin görsel sinyali
+gerçekten öğrendiği kanıtlanmıştır. Gelecek çalışmalarda en/boy oranını koruyan
+ön işleme, daha güçlü düzenlileştirme ve metin (başlık) ile çok-modlu birleşim
+incelenebilir.
+
+\begin{thebibliography}{00}
+\bibitem{vit} A. Dosovitskiy \textit{et al.}, ``An image is worth 16x16 words: Transformers for image recognition at scale,'' in \textit{Proc. ICLR}, 2021.
+\bibitem{deit} H. Touvron \textit{et al.}, ``Training data-efficient image transformers \& distillation through attention,'' in \textit{Proc. ICML}, 2021.
+\bibitem{beit} H. Bao, L. Dong, S. Piao, and F. Wei, ``BEiT: BERT pre-training of image transformers,'' in \textit{Proc. ICLR}, 2022.
+\bibitem{swin} Z. Liu \textit{et al.}, ``Swin transformer: Hierarchical vision transformer using shifted windows,'' in \textit{Proc. ICCV}, 2021, pp. 10012--10022.
+\bibitem{cvt} H. Wu \textit{et al.}, ``CvT: Introducing convolutions to vision transformers,'' in \textit{Proc. ICCV}, 2021, pp. 22--31.
+\bibitem{stratif} K. Sechidis, G. Tsoumakas, and I. Vlahavas, ``On the stratification of multi-label data,'' in \textit{Proc. ECML PKDD}, 2011, pp. 145--158.
+\bibitem{hf} T. Wolf \textit{et al.}, ``Transformers: State-of-the-art natural language processing,'' in \textit{Proc. EMNLP: System Demonstrations}, 2020, pp. 38--45.
+\bibitem{tmdb} The Movie Database (TMDB), ``API documentation,'' \url{https://developer.themoviedb.org}, erişim: 2026.
+\end{thebibliography}
+
+\end{document}

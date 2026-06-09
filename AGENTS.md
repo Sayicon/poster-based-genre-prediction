@@ -136,9 +136,9 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 ---
 
 ## Phase E — Rapor
-- [ ] IEEE .docx; sonuçlar tablo halinde + yorum; tüm zorunlu figürler.
-- [ ] Vize için detaylı veri toplama/temizleme raporu (BULGULAR.md'den türetilir).
-- [ ] Colab + Drive paylaşımı (urhanh@gmail.com), linkler rapora.
+- [x] IEEE rapor taslağı (LaTeX, Türkçe): `report/MustafaKeremCekici_231307121.tex` — tüm tablolar + figür referansları + yorum. (Overleaf'te derle + figürleri yükle, bkz. `report/README.md`.)
+- [ ] Vize detaylı veri toplama/temizleme raporu (rapor §II + BULGULAR §1-6'dan genişlet).
+- [ ] **Drive + Overleaf paylaşımı** urhanh@gmail.com'a (düzenleme yetkili); linkler rapora.
 
 ---
 ---
