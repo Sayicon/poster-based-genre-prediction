@@ -149,10 +149,18 @@ Resmî [TMDB API](https://developer.themoviedb.org/docs/rate-limiting) araştır
 - Değerlendirme Phase D'de **OOF** (out-of-fold) ile yapılacak; ayrı hold-out yok.
 - Çıktılar: `folds/fold_{0..4}_{train,val}.csv`, `mlb.pkl`, `cooccurrence_v2.png` (15×15 birlikte-geçiş matrisi).
 
-## 7. Açık Sorular / Sonraki Adımlar
-- [x] Phase A (dengeli çekim) ve Phase B (CV split) tamam.
-- [ ] **Veri Drive'a yüklenecek** (posters + labels_v2 + folds + mlb) — Colab/A100 eğitimi + hocaya paylaşım için. ~23.6k poster: zip'leyip yüklemek pratik.
-- [ ] **Phase C:** 5 transformer fine-tune (ViT/DeiT/BeiT/Swin/CvT), 5-fold; Drama dengesizliği class-weight/sampler ile telafi.
-- [ ] **Phase D:** OOF metrikler (Accuracy/Precision/Recall/Specificity/F/AUC) + confusion + ROC + loss eğrileri + train/inference time.
+## 7. Phase C — Pilot Bulgusu (ViT × fold 0, T4)
+
+İlk fine-tune pilotu (ViT-base, fold 0, 6 epoch, Colab T4):
+- **Val Macro F1 = 0.471** (en iyi, epoch 5). Karşılaştırma: v1 Scratch CNN 0.333, Frozen baseline 0.383 → **transformer fine-tune belirgin sıçrama (+0.09)**, üstelik en hafif modelle.
+- **Aşırı öğrenme ep5 sonrası:** train loss 0.064'e inerken val loss yükseliyor (0.33→0.35); val F1 ep5 tepe, ep6 düşüş → **EPOCHS=5** yeterli (best-by-F1 checkpoint en iyi epoch'u saklar).
+- **Süre:** T4'te 32 dk/koşu → 25 koşu ≈ **13.5 saat** (T4 için fazla) → **A100'e geçildi** (BATCH 32→64, tahmini ~2-4 saat).
+- Inference ~9.6 ms/görsel. (mlb sürüm uyarısı zararsız — sınıflar doğru yüklendi.)
+- Full koşu **resumable**: kopmada tamamlanmış (model, fold) atlanır.
+
+## 8. Açık Sorular / Sonraki Adımlar
+- [x] Phase A, Phase B, Phase C pilot tamam; veri Drive'da.
+- [ ] **Phase C tam koşu:** A100'de 25 koşu (BATCH=64, EPOCHS=5).
+- [ ] **Phase D:** OOF metrikler (Accuracy/Precision/Recall/Specificity/F/AUC) + confusion + ROC + loss eğrileri + train/inference time tablosu.
 
 > _Bu dosya her fazda güncellenecek._
