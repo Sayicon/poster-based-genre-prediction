@@ -15,14 +15,14 @@ Her fazın sonunda: (1) AGENTS.md'yi oku, tamamlanan maddeleri işaretle/güncel
 ---
 
 ## İsterler Özeti (PDF'ten — her madde puanlamaya tabi)
-- [ ] **5 farklı transformer modeli**, hepsi **çalışır** halde (çalışmayan = 0 puan). Görüntü için: ViT, DeiT, BeiT, Swin, CvT.
-- [ ] Her model için metrikler: **Accuracy, Recall, Precision, Sensitivity, Specificity, F-Score, AUC** (multi-label → per-class + macro/micro).
-- [ ] Her model için **confusion matrix** + **ROC eğrisi**.
-- [ ] **Cross-validation** (5-cv) — her fold'un **train/val loss eğrisi aynı grafikte**.
-- [ ] Her model için **training time** + **inference time**.
-- [ ] Veri toplama/temizleme **öncesi/sonrası** görselleştirme + tablolar (vize için ayrı detaylı rapor da).
-- [ ] **Google Colab** (Python) + **Drive paylaşımı** (urhanh@gmail.com'a) — link rapora konacak.
-- [ ] Rapor: **IEEE şablonu (.docx)**, sonuçlar **tablo** halinde (ekran görüntüsü değil), her biri yorumlanmış.
+- [x] **5 farklı transformer modeli**, hepsi çalışır (ViT, DeiT, BeiT, Swin, CvT) — hepsi v1 baseline'ı geçti.
+- [x] Her model için metrikler: Accuracy, Recall, Precision, Sensitivity, Specificity, F-Score, AUC (per-class + macro/micro).
+- [x] Her model için **confusion matrix** + **ROC eğrisi** (notebook 10 → `figures/`).
+- [x] **Cross-validation** (5-cv) — her fold'un train/val loss eğrisi aynı grafikte (`loss_curves.png`).
+- [x] Her model için **training time** + **inference time**.
+- [x] Veri öncesi/sonrası görselleştirme + tablolar (`dist_before_after.png`, `cooccurrence_v2.png`, BULGULAR). _(Vize detay raporu → Phase E.)_
+- [ ] **Google Colab** + **Drive paylaşımı** (urhanh@gmail.com'a) — link rapora konacak.
+- [ ] Rapor: **IEEE şablonu (.docx)**, sonuçlar tablo halinde + yorum.
 - Not: Proje **multimodal değil** (sadece poster görseli) → hocayla ayrı görüşme gerekmez.
 
 ---
@@ -95,8 +95,8 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 - [x] `MultiLabelBinarizer` (15 tür) → `mlb.pkl`.
 - [x] **5-fold CV** — `iterstrat.MultilabelStratifiedKFold` → `folds/fold_{i}_{train,val}.csv`. (~18.9k train / ~4.7k val, sıfır overlap, mükemmel stratifikasyon)
 - [x] Temizleme öncesi/sonrası tür dağılımı + co-occurrence heatmap. → `cooccurrence_v2.png`, BULGULAR.md §6.
-- [ ] _(Phase C'de)_ Poster ön işleme: 2:3 portre → modele göre 224×224 (Swin-V2 için 256) resize. Aspect-ratio kararı belgelenecek.
-- [ ] _(Phase D'de)_ Değerlendirme **out-of-fold (OOF)** tahminlerle (her örnek val fold'undayken 1 kez) — ayrı hold-out yok.
+- [x] _(Phase C)_ Poster ön işleme: 2:3 portre → 224×224 resize (distort-to-square; rapora not). notebook 09.
+- [x] _(Phase D)_ Değerlendirme **out-of-fold (OOF)** tahminlerle yapıldı (ayrı hold-out yok).
 
 ---
 
@@ -131,6 +131,7 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 - [x] 5 model + v1 baseline karşılaştırma tablosu; per-class F1 bar chart.
 - [x] Kritik kontrol: ortalama tahmin **~2.4 tür/film** (v1: 5-7), frekans biası gitti (Animation 0.86 zirvede, History 0.10→0.47).
 - [x] 12 film için görsel + tahmin + gerçek etiket → `figures/`.
+- [x] Random/frekans-prior baseline: macro-F1 ~0.15 (şans) → Swin 0.562 **~3.8x** iyi; görüntü sinyalini + cheat-yokluğunu kanıtlar.
 
 ---
 

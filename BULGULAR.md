@@ -199,6 +199,7 @@ OOF (5-fold birleşik, 23.640 film), per-sınıf threshold-optimize. **En iyi: S
 - ✅ **Frekans biası gitti:** en iyi tür artık **Animation 0.863** (AUC 0.98); **History 0.10→0.47, Documentary 0.11→0.59**; Drama 0.61 / Comedy 0.64 artık zirvede değil → gerçek görsel öğrenme.
 - En zayıf türler: Fantasy 0.42, Mystery 0.43, Crime 0.44 (görsel olarak en belirsiz). Specificity 0.78–0.99.
 - **Cheat riski:** kombinasyon-dengeli veri + rare türlerdeki büyük iyileşme co-occurrence cheat'in baskın olmadığını gösteriyor; raporda "tamamen elenmedi" notu düşülecek (ayrı test kurulmadı — karar gereği).
+- **Random baseline (şans karşılaştırması):** ~2.4 tür/film rasgele → macro-F1 **0.149**; frekans-prior (görüntü YOK) → **0.146**; filme 2-3 rasgele tür → 0.157. **Swin 0.562 = şansın ~3.8x'i**, frekans-prior'ı +0.42 ile aşıyor → sinyal afişten geliyor, frekans/korelasyondan değil (cheat değil). _(labels_v2'den hesap; notebook 10'a eklenecek.)_
 - Figürler: `figures/` (per_class_f1_models, confusion_swin, roc_swin, loss_curves, samples_swin).
 
 ## 10. Açık Sorular / Sonraki Adımlar
