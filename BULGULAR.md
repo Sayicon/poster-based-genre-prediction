@@ -158,9 +158,32 @@ Resmî [TMDB API](https://developer.themoviedb.org/docs/rate-limiting) araştır
 - Inference ~9.6 ms/görsel. (mlb sürüm uyarısı zararsız — sınıflar doğru yüklendi.)
 - Full koşu **resumable**: kopmada tamamlanmış (model, fold) atlanır.
 
-## 8. Açık Sorular / Sonraki Adımlar
-- [x] Phase A, Phase B, Phase C pilot tamam; veri Drive'da.
-- [ ] **Phase C tam koşu:** A100'de 25 koşu (BATCH=64, EPOCHS=5).
-- [ ] **Phase D:** OOF metrikler (Accuracy/Precision/Recall/Specificity/F/AUC) + confusion + ROC + loss eğrileri + train/inference time tablosu.
+## 8. Phase C — Tam Koşu Sonuçları (25 model, A100)
+
+5 model × 5 fold = 25 koşu A100'de tamamlandı (toplam ~113 dk eğitim).
+**Verimlilik notu:** posterler Drive FUSE'tan okununca A100 veri-bound kalıyordu (epoch ~5 dk, ekranda ilerleme yok gibi); posterler `/content` (lokal SSD)'ye açılıp `num_workers=8 + persistent_workers + AMP` ile **~30 sn/epoch (~10x T4)** → tüm koşu ~1 saat. (Rapor için iyi bir "veri pipeline" notu.)
+
+**Val Macro F1 (5-fold ortalaması, 0.5 eşiği — Phase D'de per-sınıf threshold ile daha yüksek olacak):**
+
+| Model | Val Macro F1 | Not |
+|---|---|---|
+| **Swin** | **0.530** | en iyi 🥇 |
+| BeiT | 0.492 | |
+| DeiT | 0.477 | |
+| ViT | 0.472 | |
+| CvT | 0.381 | en zayıf (küçük/eski arch) |
+| _v1 Frozen baseline_ | _0.383_ | referans |
+| _v1 Scratch CNN_ | _0.333_ | referans |
+
+- **Swin, v1 baseline'ı (0.383) ezici geçti: +0.147 (~%38 görece).** CvT hariç tüm transformerlar baseline'ı net aştı.
+- Fold'lar arası varyans düşük → sonuçlar tutarlı/sağlam.
+- CvT baseline seviyesinde kaldı; "çalışan" model (şartı karşılar) + mimari karşılaştırması için iyi veri noktası.
+- Inference ~1.6 ms/görsel. Eğitim/fold: ViT/DeiT/BeiT ~4 dk, Swin ~5-8 dk, CvT ~4.5 dk.
+
+## 9. Açık Sorular / Sonraki Adımlar
+- [x] Phase A, B, C tamam.
+- [ ] **Phase D:** notebook 10 → per-sınıf threshold-optimize metrikler (Acc/Prec/Rec/Spec/F/AUC) + confusion + ROC + loss eğrileri + süre tablosu + örnek tahminler.
+- [ ] **Notebook 09 temizliği:** Colab'da elle eklenen hücreler (lokal-disk + tqdm + persistent_workers) tek temiz/commit'li sürüme entegre edilecek.
+- [ ] **IEEE rapor (.docx)** + Drive paylaşımı (urhanh@gmail.com).
 
 > _Bu dosya her fazda güncellenecek._

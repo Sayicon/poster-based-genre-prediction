@@ -116,7 +116,7 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 - AdamW, düşük LR (fine-tune: ~2e-5–5e-5), cosine schedule + warmup, early stopping.
 - **5-fold CV:** her model × 5 fold = 25 koşu. Her fold için train/val loss kaydı (aynı grafikte çizilecek).
 - Her model için **training time** ölç ve kaydet. Checkpoint'ler `checkpoints/<model>/fold{i}_best.pt`.
-- [ ] 5 modeli eğit; loss eğrileri + süreleri kaydet → BULGULAR.md.
+- [x] 5 modeli eğit; loss eğrileri + süreleri kaydet → BULGULAR.md. (A100, ~113 dk; en iyi **Swin val MacroF1=0.530**, v1 0.383'ten +0.147; CvT 0.381 en zayıf)
 
 ---
 
