@@ -180,10 +180,31 @@ Resmî [TMDB API](https://developer.themoviedb.org/docs/rate-limiting) araştır
 - CvT baseline seviyesinde kaldı; "çalışan" model (şartı karşılar) + mimari karşılaştırması için iyi veri noktası.
 - Inference ~1.6 ms/görsel. Eğitim/fold: ViT/DeiT/BeiT ~4 dk, Swin ~5-8 dk, CvT ~4.5 dk.
 
-## 9. Açık Sorular / Sonraki Adımlar
-- [x] Phase A, B, C tamam.
-- [ ] **Phase D:** notebook 10 → per-sınıf threshold-optimize metrikler (Acc/Prec/Rec/Spec/F/AUC) + confusion + ROC + loss eğrileri + süre tablosu + örnek tahminler.
-- [ ] **Notebook 09 temizliği:** Colab'da elle eklenen hücreler (lokal-disk + tqdm + persistent_workers) tek temiz/commit'li sürüme entegre edilecek.
-- [ ] **IEEE rapor (.docx)** + Drive paylaşımı (urhanh@gmail.com).
+## 9. Phase D — Değerlendirme Sonuçları
+
+OOF (5-fold birleşik, 23.640 film), per-sınıf threshold-optimize. **En iyi: Swin.**
+
+| Model | Macro F1 | Micro F1 | Macro AUC |
+|---|---|---|---|
+| **Swin** | **0.562** | 0.566 | 0.862 |
+| BeiT | 0.534 | 0.539 | 0.844 |
+| ViT | 0.527 | 0.535 | 0.841 |
+| DeiT | 0.524 | 0.530 | 0.836 |
+| CvT | 0.501 | 0.509 | 0.823 |
+| _v1 Frozen baseline_ | _0.383_ | | |
+| _v1 Scratch CNN_ | _0.333_ | | |
+
+- **Swin 0.562 vs v1 0.383 → +0.179 (~%47 görece).** 5 transformer da v1'i geçti (CvT bile 0.501; threshold tuning CvT'yi 0.381→0.501 toparladı).
+- ✅ **Over-prediction çözüldü:** ortalama tahmin **~2.3-2.5 tür/film** (gerçek 2.18); v1'de 5-7 idi.
+- ✅ **Frekans biası gitti:** en iyi tür artık **Animation 0.863** (AUC 0.98); **History 0.10→0.47, Documentary 0.11→0.59**; Drama 0.61 / Comedy 0.64 artık zirvede değil → gerçek görsel öğrenme.
+- En zayıf türler: Fantasy 0.42, Mystery 0.43, Crime 0.44 (görsel olarak en belirsiz). Specificity 0.78–0.99.
+- **Cheat riski:** kombinasyon-dengeli veri + rare türlerdeki büyük iyileşme co-occurrence cheat'in baskın olmadığını gösteriyor; raporda "tamamen elenmedi" notu düşülecek (ayrı test kurulmadı — karar gereği).
+- Figürler: `figures/` (per_class_f1_models, confusion_swin, roc_swin, loss_curves, samples_swin).
+
+## 10. Açık Sorular / Sonraki Adımlar
+- [x] Phase A, B, C, D tamam — proje teknik olarak bitti, hedef bandı (0.48-0.55) aşıldı.
+- [ ] **Notebook 09 temizliği** + notebook 10 outputs'lu commit.
+- [ ] **IEEE .docx rapor** (tüm bölümler + figürler/tablolar) + vize veri toplama/temizleme raporu.
+- [ ] **Drive paylaşımı** urhanh@gmail.com'a (kod + veri + figürler).
 
 > _Bu dosya her fazda güncellenecek._

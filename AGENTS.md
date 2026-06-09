@@ -124,13 +124,13 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 
 **Notebook:** `10_evaluate.ipynb`
 
-- [ ] Her model için val/test inference; per-class threshold optimizasyonu.
-- [ ] Metrikler (per-class + macro/micro): **Accuracy, Precision, Recall/Sensitivity, Specificity, F-Score, AUC.**
-- [ ] **Confusion matrix** (per-class) + **ROC eğrisi** (one-vs-rest, per-class + makro).
-- [ ] **Inference time** ölç (her model).
-- [ ] 5 model + v1 baseline'lar karşılaştırma tablosu; per-class F1 bar chart.
-- [ ] Kritik kontrol: ortalama tahmin/film (~1.5–2.5 hedef), Drama/Comedy biası azaldı mı, az türler yükseldi mi.
-- [ ] 12 film için görsel + tahmin + gerçek etiket. → BULGULAR.md + rapor figürleri.
+- [x] Her model için OOF inference; per-class threshold optimizasyonu.
+- [x] Metrikler (per-class + macro/micro): Accuracy, Precision, Recall/Sensitivity, Specificity, F-Score, AUC. (en iyi **Swin macro-F1 0.562**, macro-AUC 0.862)
+- [x] **Confusion matrix** (per-class) + **ROC eğrisi** (one-vs-rest) → `figures/`.
+- [x] **Inference time** ölç (her model) — ~1.6 ms/görsel.
+- [x] 5 model + v1 baseline karşılaştırma tablosu; per-class F1 bar chart.
+- [x] Kritik kontrol: ortalama tahmin **~2.4 tür/film** (v1: 5-7), frekans biası gitti (Animation 0.86 zirvede, History 0.10→0.47).
+- [x] 12 film için görsel + tahmin + gerçek etiket → `figures/`.
 
 ---
 
