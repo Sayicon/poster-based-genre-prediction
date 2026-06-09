@@ -1,3 +1,5 @@
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:16213e,100:0f3460&height=180&section=header&text=Poster%20Genre%20AI&fontSize=52&fontColor=fff&animation=fadeIn&fontAlignY=36&desc=Multi-Label%20Vision%20Transformer%20%7C%20Kocaeli%20%C3%9Cniversitesi&descSize=16&descColor=ccc&descAlignY=58" width="100%"/>
+
 # 🎬 Poster-Based Multi-Label Genre Prediction
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
@@ -123,3 +125,5 @@ Training and evaluation are designed for **Google Colab** (GPU required):
 - **No co-occurrence cheat:** improvement in rare genres proves genuine visual learning over label correlation.
 - **Swin is best:** hierarchical local attention outperforms pure ViT — consistent with literature on inductive bias in small-to-medium datasets.
 - **Drive I/O was the bottleneck on A100:** copying posters to local SSD (`/content`) gave ~10× speedup (30 s/epoch vs 5+ min).
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f3460,100:16213e&height=120&section=footer" width="100%"/>
