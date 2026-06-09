@@ -136,7 +136,8 @@ Detaylı bulgular ve sayılar: [BULGULAR.md](BULGULAR.md).
 ---
 
 ## Phase E — Rapor
-- [x] IEEE rapor taslağı (LaTeX, Türkçe): `report/MustafaKeremCekici_231307121.tex` — tüm tablolar + figür referansları + yorum. (Overleaf'te derle + figürleri yükle, bkz. `report/README.md`.)
+- [x] IEEE rapor taslağı (LaTeX, Türkçe): `report/MustafaKeremCekici_231307121.tex` (Overleaf rotası, bkz. `report/README.md`).
+- [x] **Bitmiş .docx üretici:** `notebooks/11_report.ipynb` — Colab'da çalıştır → `MustafaKeremCekici_231307121.docx` Drive'a yazılır (tüm metin/tablo/figür gömülü, Türkçe). Kocaeli Üniv. / Bilişim Sistemleri Müh.
 - [ ] Vize detaylı veri toplama/temizleme raporu (rapor §II + BULGULAR §1-6'dan genişlet).
 - [ ] **Drive + Overleaf paylaşımı** urhanh@gmail.com'a (düzenleme yetkili); linkler rapora.
 
