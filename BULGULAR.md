@@ -202,10 +202,12 @@ OOF (5-fold birleşik, 23.640 film), per-sınıf threshold-optimize. **En iyi: S
 - **Random baseline (şans karşılaştırması):** ~2.4 tür/film rasgele → macro-F1 **0.149**; frekans-prior (görüntü YOK) → **0.146**; filme 2-3 rasgele tür → 0.157. **Swin 0.562 = şansın ~3.8x'i**, frekans-prior'ı +0.42 ile aşıyor → sinyal afişten geliyor, frekans/korelasyondan değil (cheat değil). _(labels_v2'den hesap; notebook 10'a eklenecek.)_
 - Figürler: `figures/` (per_class_f1_models, confusion_swin, roc_swin, loss_curves, samples_swin).
 
-## 10. Açık Sorular / Sonraki Adımlar
+## 10. Proje Durumu
+
 - [x] Phase A, B, C, D tamam — proje teknik olarak bitti, hedef bandı (0.48-0.55) aşıldı.
-- [ ] **Notebook 09 temizliği** + notebook 10 outputs'lu commit.
-- [ ] **IEEE .docx rapor** (tüm bölümler + figürler/tablolar) + vize veri toplama/temizleme raporu.
-- [ ] **Drive paylaşımı** urhanh@gmail.com'a (kod + veri + figürler).
+- [x] **IEEE rapor** — `report/MustafaKeremCekici_231307121.tex` Overleaf'te derlendi, PDF teslime hazır.
+- [x] **Vize veri toplama/temizleme raporu** — `build_vize_report.py` → `VizRaporu_231307121_MustafaKeremCekici.docx`.
+- [x] **Drive + Overleaf paylaşımı** urhanh@gmail.com'a tamamlandı.
+- [ ] Notebook 09 temizliği (isteğe bağlı).
 
 > _Bu dosya her fazda güncellenecek._
