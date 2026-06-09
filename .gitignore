@@ -20,6 +20,8 @@ tmdb_movie_ids.txt
 labels_v2.csv
 folds/
 gap_report.csv
+ids_checkpoint.txt
+*.docx
 
 # Sırlar — ASLA commit edilmez
 .env
