@@ -7,7 +7,7 @@
 [![HuggingFace](https://img.shields.io/badge/🤗_Transformers-4.x-FFD21E)](https://huggingface.co/docs/transformers)
 [![Colab](https://img.shields.io/badge/Training-Colab_A100-F9AB00?logo=googlecolab&logoColor=white)](https://colab.research.google.com/github/Sayicon/poster-based-genre-prediction/blob/main/notebooks/09_train_transformer.ipynb)
 
-> **Kocaeli Üniversitesi — Bilişim Sistemleri Mühendisliği — Final Projesi**  
+> **Kocaeli Üniversitesi — Bilişim Sistemleri Mühendisliği — Makine Öğrenmesi — Final Projesi**  
 > Mustafa Kerem Çekici · 231307121
 
 Given only a movie poster image, predict all of its genres simultaneously — a **multi-label image classification** problem with 15 target genres. Five vision transformers (ViT, DeiT, BeiT, Swin, CvT) are fine-tuned from ImageNet weights and evaluated with 5-fold cross-validation.
