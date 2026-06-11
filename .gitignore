@@ -32,3 +32,6 @@ ids_checkpoint.txt
 # Veri paketleri / figürler (Drive'a gider, repoya değil)
 *.zip
 *.png
+
+# Rapor (Overleaf'te tutuluyor, repoya değil)
+report/
